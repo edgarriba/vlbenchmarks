@@ -12,6 +12,8 @@ function repeatabilityDemo2(resultsPath)
 close all
 clear all
 
+addpath(genpath(pwd))
+
 if nargin < 1, resultsPath = ''; end;
 
 % --------------------------------------------------------------------
@@ -25,10 +27,9 @@ import localFeatures.*;
 % A detector repeatability is measured against a benchmark. In this
 % case we create an instance of the VGG Affine Testbed (graffity
 % sequence).
-
-% 'boat', removed since makes vlfeat crash (check image type)
+% 'boat', gives out of memory
 % 'trees', gives out of memory
-%datasets_names = {'bark', 'bikes', 'graf', 'leuven', 'ubc', 'wall'};
+%datasets_names = {'bark', 'bikes', 'graf', 'leuven', 'ubc', 'wall', 'boat', 'trees'};
 datasets_names = {'bark'};
 
 % Next, the benchmark is intialised by choosing various
@@ -49,20 +50,15 @@ repBenchmark = CVCRepeatabilityBenchmark('Mode','Repeatability');
 % Prepare three detectors, the two from PART 1 and a third one that
 % detects MSER image features.
 
+%mser = VlFeatMser('Delta', 10);
 mser = VlFeatMser();
 siftDetector = VlFeatSift();
 siftDetector2 = VggDescriptor();
-
-%thrSiftDetector = VlFeatSift('PeakThresh',11);
-%covdet = VlFeatCovdet();
-cvc_cnn1 = cvc_CNN('TORCH_siam2stream_desc_notredame');
-cvc_cnn2 = cvc_CNN('TORCH_siam_desc_notredame');
-cvc_cnn3 = cvc_CNN('CAFFE_alexnet');
-cvc_cnn4 = cvc_CNN('LUA_iri');
-cvc_cnn5 = cvc_CNN('CAFFE_2ch');
-cvc_cnn6 = cvc_CNN('CAFFE_2chdeep');
-cvc_cnn7 = cvc_CNN('CAFFE_siam');
-
+cvc_cnn1 = cvc_CNN('TORCH_LUA_siam2stream_liberty');
+cvc_cnn4 = cvc_CNN('TORCH_LUA_2ch2stream_liberty');
+cvc_cnn6 = cvc_CNN('CAFFE_alexnet');
+cvc_cnn7 = cvc_CNN('TORCH_iri');
+cvc_cnn8 = cvc_CNN('CAFFE_VGG16');
 
 % --------------------------------------------------------------------
 % PART 3: Detector matching score
@@ -80,16 +76,32 @@ cvc_cnn7 = cvc_CNN('CAFFE_siam');
 mserWithSift = DescriptorAdapter(mser, siftDetector);
 mserWithSift2 = DescriptorAdapter(mser, siftDetector2);
 mserWithCNN1 = DescriptorAdapter(mser, cvc_cnn1);
-mserWithCNN2 = DescriptorAdapter(mser, cvc_cnn2);
-mserWithCNN3 = DescriptorAdapter(mser, cvc_cnn3);
+%mserWithCNN2 = DescriptorAdapter(mser, cvc_cnn2);
+%mserWithCNN3 = DescriptorAdapter(mser, cvc_cnn3);
 mserWithCNN4 = DescriptorAdapter(mser, cvc_cnn4);
-mserWithCNN5 = DescriptorAdapter(mser, cvc_cnn5);
+%mserWithCNN5 = DescriptorAdapter(mser, cvc_cnn5);
 mserWithCNN6 = DescriptorAdapter(mser, cvc_cnn6);
 mserWithCNN7 = DescriptorAdapter(mser, cvc_cnn7);
+mserWithCNN8 = DescriptorAdapter(mser, cvc_cnn8);
 
-%featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN2, mserWithCNN3, mserWithCNN4, mserWithCNN5, mserWithCNN6, mserWithCNN7};
-%featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN2, mserWithCNN3, mserWithCNN4};
-featExtractors = {mserWithSift, mserWithSift2};
+featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN4, mserWithCNN6, mserWithCNN7};
+%featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN4, mserWithCNN6, mserWithCNN7};
+%featExtractors = {mserWithCNN6};
+
+%% First we will compute the descriptors
+
+%for j = 1:numel(datasets_names)
+%    char(datasets_names(j))
+%    dataset = datasets.VggAffineDataset('Category', char(datasets_names(j)));
+%    for d = 1:numel(featExtractors)
+%      for i = 2:dataset.NumImages
+%        [framesA descriptorsA] = featExtractors{d}.extractFeatures(dataset.getImagePath(1));
+%        [framesB descriptorsB] = featExtractors{d}.extractFeatures(dataset.getImagePath(i));
+%      end
+%    end
+%end
+
+%% Second we will run the tests in parallel
 
 % We create a benchmark object and run the tests as before, but in
 % this case we request that descriptor-based matched should be tested.
@@ -113,19 +125,21 @@ for j = 1:numel(datasets_names)
     end
 end
 
+%%
 % Print and plot the results
 
 detectorNames = {'MSER SIFT (vlfeat)', ...
                  'MSER SIFT (vgg)', ...
-                 %'MSER siam-2-stream-l_2', ...
-                 %'MSER siam', ...
-                 %'MSER Alexnet', ...
-                 %'MSER iri'...
+                 'MSER siam-2-stream-l_2', ...
+                 'MSER 2ch2stream', ...
+                 'MSER Alexnet', ...
+                 'MSER IRI',...
+                 'MSER VGG16'...
                  };
-             
-printScores(detectorNames, matchScore*100, 'Match Score');
-printScores(detectorNames, auc*100, 'Area Under Curve');
-printScores(detectorNames, numMatches, 'Number of matches') ;
+
+%printScores(detectorNames, matchScore*100, 'Match Score');
+%printScores(detectorNames, auc*100, 'Area Under Curve');
+%printScores(detectorNames, numMatches, 'Number of matches') ;
 
 figure(4); clf;
 subplot(1,3,1);
@@ -135,6 +149,7 @@ plotScores(detectorNames, dataset, auc*100,'Area Under Curve');
 subplot(1,3,3);
 plotScores(detectorNames, dataset, numMatches,'Number of matches');
 
+%%
 % --------------------------------------------------------------------
 % Helper functions
 % --------------------------------------------------------------------
@@ -181,6 +196,7 @@ function plotScores(detectorNames, dataset, score, titleText)
   end
   legend(detectorNames,'Location',legendLocation);
   grid on ;
+  maxScore = (maxScore>100).*maxScore + (maxScore<=100).*100;
   axis([xstart xend 0 maxScore]);
 end
 end

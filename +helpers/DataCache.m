@@ -96,16 +96,16 @@ classdef DataCache
       import helpers.DataCache;
       import helpers.*;
       dataFile = DataCache.buildDataFileName(key);
-      
+
       if ~exist(DataCache.dataPath,'dir')
         vl_xmkdir(DataCache.dataPath);
       end
-      
+
       packedData.key = key;
       packedData.data = data;
-      
+
       save(dataFile,'packedData',DataCache.dataFileVersion);
-      
+
       if DataCache.autoClearEnabled()
         DataCache.clearCache();
       end
@@ -125,25 +125,25 @@ classdef DataCache
 
     function clearCache()
       %clearCache() - Check the overall size of the cached data and delete
-      %   last recently used data if it exceeds the allowed size 
+      %   last recently used data if it exceeds the allowed size
       %   DataCache.maxDataSize.
       import helpers.DataCache;
       maxDataSizeBytes = DataCache.maxDataSize;
-      
+
       dataFiles = dir(fullfile(DataCache.dataPath,'*.mat'));
       dataModDates = [dataFiles.datenum];
       dataSizes = [dataFiles.bytes];
       dataNames = {dataFiles.name};
-      
+
       [tmp order] = sort(dataModDates,'descend');
-      
+
       sortedDataSizes = dataSizes(order);
       sortedDataNames = dataNames(order);
-      
+
       sumDataSizes = cumsum(sortedDataSizes);
-      
+
       filesToDelete = sortedDataNames(sumDataSizes > maxDataSizeBytes);
-      
+
       if ~isempty(filesToDelete)
         fprintf('Deleting the oldest %d files from cache...\n',numel(filesToDelete));
         for fileName=filesToDelete
@@ -175,7 +175,7 @@ classdef DataCache
       % enableAutoClear() Enable auto clear after calling disableAutoClear.
       import helpers.DataCache;
       if exist(DataCache.LockFileName,'file')
-        delete(DataCache.LockFileName); 
+        delete(DataCache.LockFileName);
       end
     end
   end
@@ -186,7 +186,7 @@ classdef DataCache
       hash = CalcMD5.CalcMD5(key);
       dataFile = fullfile(DataCache.dataPath,strcat(hash,'.mat'));
     end
-    
+
     function updateModificationDate(fileName)
       helpers.touch(fileName);
     end

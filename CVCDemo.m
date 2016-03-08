@@ -29,8 +29,8 @@ import localFeatures.*;
 % sequence).
 % 'boat', gives out of memory
 % 'trees', gives out of memory
-%datasets_names = {'bark', 'bikes', 'graf', 'leuven', 'ubc', 'wall', 'boat', 'trees'};
-datasets_names = {'bark'};
+datasets_names = {'bark', 'bikes', 'graf', 'leuven', 'ubc', 'wall', 'boat', 'trees'};
+%datasets_names = {'bark'};
 
 % Next, the benchmark is intialised by choosing various
 % parameters. The defaults correspond to the seetting in the original
@@ -85,8 +85,7 @@ mserWithCNN7 = DescriptorAdapter(mser, cvc_cnn7);
 mserWithCNN8 = DescriptorAdapter(mser, cvc_cnn8);
 
 featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN4, mserWithCNN6, mserWithCNN7};
-%featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN4, mserWithCNN6, mserWithCNN7};
-%featExtractors = {mserWithCNN6};
+%featExtractors = {mserWithCNN7};
 
 %% First we will compute the descriptors
 
@@ -106,18 +105,39 @@ featExtractors = {mserWithSift, mserWithSift2, mserWithCNN1, mserWithCNN4, mserW
 % We create a benchmark object and run the tests as before, but in
 % this case we request that descriptor-based matched should be tested.
 
-matchingBenchmark = CVCRepeatabilityBenchmark('Mode', 'MatchingScore');
+%matchingBenchmark = CVCRepeatabilityBenchmark('Mode', 'MatchingScore');
+
+% for j = 1:numel(datasets_names)
+%     char(datasets_names(j))
+%     dataset = datasets.VggAffineDataset('Category', char(datasets_names(j)));
+%     matchScore = [];
+%     auc = [];
+%     numMatches = [];
+%     for d = 1:numel(featExtractors)
+%       for i = 2:dataset.NumImages
+%         [matchScore(d,i) auc(d,i) numMatches(d,i)] = ...
+%           matchingBenchmark.testFeatureExtractor(featExtractors{d}, ...
+%                                     dataset.getTransformation(i), ...
+%                                     dataset.getImagePath(1), ...
+%                                     dataset.getImagePath(i));
+%       end
+%     end
+% end
+
+repBenchmark = CVCRepeatabilityBenchmark('Mode','ThresholdBased'); % Repeatability');
 
 for j = 1:numel(datasets_names)
+
     char(datasets_names(j))
     dataset = datasets.VggAffineDataset('Category', char(datasets_names(j)));
-    matchScore = [];
-    auc = [];
-    numMatches = [];
+
     for d = 1:numel(featExtractors)
       for i = 2:dataset.NumImages
-        [matchScore(d,i) auc(d,i) numMatches(d,i)] = ...
-          matchingBenchmark.testFeatureExtractor(featExtractors{d}, ...
+        descriptorMatches = {};
+        geometryMatches = {};
+        reprojFrames = {};
+        [descriptorMatches{d,i}, geometryMatches{d,i}, reprojFrames{d,i}] = ...
+            repBenchmark.testFeatureExtractor(featExtractors{d}, ...
                                     dataset.getTransformation(i), ...
                                     dataset.getImagePath(1), ...
                                     dataset.getImagePath(i));
@@ -125,29 +145,18 @@ for j = 1:numel(datasets_names)
     end
 end
 
-%%
-% Print and plot the results
-
-detectorNames = {'MSER SIFT (vlfeat)', ...
-                 'MSER SIFT (vgg)', ...
-                 'MSER siam-2-stream-l_2', ...
-                 'MSER 2ch2stream', ...
-                 'MSER Alexnet', ...
-                 'MSER IRI',...
-                 'MSER VGG16'...
-                 };
-
-%printScores(detectorNames, matchScore*100, 'Match Score');
-%printScores(detectorNames, auc*100, 'Area Under Curve');
-%printScores(detectorNames, numMatches, 'Number of matches') ;
-
-figure(4); clf;
-subplot(1,3,1);
-plotScores(detectorNames, dataset, matchScore*100,'Matching Score');
-subplot(1,3,2);
-plotScores(detectorNames, dataset, auc*100,'Area Under Curve');
-subplot(1,3,3);
-plotScores(detectorNames, dataset, numMatches,'Number of matches');
+%
+% %printScores(detectorNames, matchScore*100, 'Match Score');
+% %printScores(detectorNames, auc*100, 'Area Under Curve');
+% %printScores(detectorNames, numMatches, 'Number of matches') ;
+%
+% figure(4); clf;
+% subplot(1,3,1);
+% plotScores(detectorNames, dataset, matchScore*100,'Matching Score');
+% subplot(1,3,2);
+% plotScores(detectorNames, dataset, auc*100,'Area Under Curve');
+% subplot(1,3,3);
+% plotScores(detectorNames, dataset, numMatches,'Number of matches');
 
 %%
 % --------------------------------------------------------------------

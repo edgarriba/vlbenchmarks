@@ -394,11 +394,6 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
 
       import benchmarks.helpers.*;
       import helpers.*;
-      
-
-     
-        
-      
 
       obj.info('Computing score between %d/%d frames.',...
           size(framesA,2),size(framesB,2));
@@ -663,7 +658,7 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
         res{3}.recallGM = []; 
         res{3}.auc = []; 
         res{3}.aucGM = []; 
-
+if 0
         if numGeometryMatches121
             tic
 
@@ -740,7 +735,7 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
                        
         end
 
-    
+end
 
         % N-1 matching. A frame B_j can be associated to more that one
         % frame in A. (N-to-1)
@@ -765,10 +760,11 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
                 LabelCorrectN21MatchesAndRecast(descMatchesNNRN21,...
                                          geometryMatchesN2N,...
                                          distDescMatchesNNRN21);
-                                     
-            [ res{4}.aucNNR, res{4}.aucGM, res{4}.precision, res{4}.recall, res{4}.recallGM] = ...
+
+                                                                          
+            [ res{4}.auc, res{4}.aucGM, res{4}.precision, res{4}.recall, res{4}.recallGM] = ...
                 PrecisionRecallComputation(res{4}.correctMatches, numGeometryMatchesN2N); 
-            
+
             clear descMatchesNNRN21;
             clear distDescMatchesNNRN21;
         end

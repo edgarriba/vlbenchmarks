@@ -15,10 +15,23 @@ function signature = fileSignature(varargin)
 % Authors: Karel Lenc, Andrea Vedaldi
 
 % AUTORIGHTS
+
+% MODIFICATION !!!! Added the directory name on the file Signature, since
+% there are datasets (Fischer and SymBench) whose images share the same
+% name, date and hour, generating the same signature, even when they are
+% form different datasets.
+%
+% The directory name is hence added to the signature
+
 signature = '';
 
 for i = 1:nargin
   f_info = dir(varargin{i});
-  signature = strcat(signature,sprintf('%s;%s;', f_info.name, f_info.date));
+  
+  % ADDED: Get the 'sequence' name
+  fragments = strsplit(varargin{i},'\');
+  seqName = fragments{end-1};
+  
+  signature = strcat(signature,sprintf('%s;%s;%s;', seqName, f_info.name, f_info.date));
 end
 

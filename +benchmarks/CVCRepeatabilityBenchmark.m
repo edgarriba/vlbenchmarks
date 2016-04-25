@@ -215,7 +215,8 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
       'warpMethod', 'linearise',...
       'mode', 'repeatability',...
       'descriptorsDistanceMetric', 'L2',...
-      'normalisedScale', 30);
+      'normalisedScale', 30,...
+      'maxSamples', 5000);
   end
 
   properties(Constant, Hidden)
@@ -394,17 +395,21 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
 
       import benchmarks.helpers.*;
       import helpers.*;
-      
 
-     
-        
-      
+      % take random frames
+      maxSamples = obj.Opts.maxSamples;
+      %rndIDXA = randperm(min(maxSamples, size(framesA,2)));
+      rndIDXB = randperm(min(maxSamples, size(framesB,2)));
+      %framesA = framesA(:, rndIDXA);
+      framesB = framesB(:, rndIDXB);
+      %descriptorsA = descriptorsA(:, rndIDXA);
+      descriptorsB = descriptorsB(:, rndIDXB);
 
       obj.info('Computing score between %d/%d frames.',...
           size(framesA,2),size(framesB,2));
       matchGeometry = obj.ModesOpts(obj.Opts.mode).matchGeometry;
       matchDescriptors = obj.ModesOpts(obj.Opts.mode).matchDescs;
-      
+
       res = {};
       geometryMatches = {};
       reprojFrames = {};
@@ -547,17 +552,17 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
       % geometryMatches. Otherwise, all the regions put in correspondence
       % are False Positives, and it has no sense to compute
       % precision-recall curves.
-      
+
       numGeometryMatches121 = sum(geometryMatches121 ~= 0);
       numGeometryMatchesN2N = nnz(geometryMatchesN2N);
-      
-      
+
+
       res = {};
 
       if matchDescriptors && ...
          ((numGeometryMatches121>0) || (numGeometryMatchesN2N1>0))
 
-                    
+
         obj.info('Computing cross distances between all descriptors');
         dists = vl_alldist2(single(descriptorsA),single(descriptorsB),...
         obj.Opts.descriptorsDistanceMetric);
@@ -571,24 +576,24 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
         edges = [aIdx bIdx];
 
          obj.info('Matching descriptors.');
-         
-         
+
+
         % Nearest Neighbor Matching
         % -------------------------------------
         % 1-1 matching (frame A_i is matched at one frame B_j and
         % viceversa)
         % Find one-to-one best matches
-        
+
         res{1}.method = 'NN-121';
-        res{1}.correctMatches = []; 
-        res{1}.precision = []; 
-        res{1}.recall = []; 
-        res{1}.recallGM = []; 
-        res{1}.auc = []; 
-        res{1}.aucGM = []; 
-       
+        res{1}.correctMatches = [];
+        res{1}.precision = [];
+        res{1}.recall = [];
+        res{1}.recallGM = [];
+        res{1}.auc = [];
+        res{1}.aucGM = [];
+
         if numGeometryMatches121
-        
+
             descMatchesNN121 = greedyBipartiteMatching(numFramesA, numFramesB, edges);
 
             for j=1:size(descMatchesNN121,2)
@@ -598,31 +603,31 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
                     distDescMatchesNN121(j) = inf;
                 end
             end
-            
+
             [res{1}.correctMatches] = ...
                 LabelCorrect121MatchesAndRecast(descMatchesNN121,...
                                          geometryMatches121,...
                                          distDescMatchesNN121);
-                                     
+
             [ res{1}.auc, res{1}.aucGM, res{1}.precision, res{1}.recall, res{1}.recallGM] = ...
                 PrecisionRecallComputation(res{1}.correctMatches, numGeometryMatches121);
-            
+
             clear descMatchesNN121;
-            clear distDescMatchesNN121;                     
-            
+            clear distDescMatchesNN121;
+
         end
 
         % N-1 matching. A frame B_j can be associated to more that one
         % frame in A. (N-to-1)
-        
+
         res{2}.method = 'NN-N21';
-        res{2}.correctMatches = []; 
-        res{2}.precision = []; 
-        res{2}.recall = []; 
-        res{2}.recallGM = []; 
-        res{2}.auc = []; 
-        res{2}.aucGM = []; 
-        
+        res{2}.correctMatches = [];
+        res{2}.precision = [];
+        res{2}.recall = [];
+        res{2}.recallGM = [];
+        res{2}.auc = [];
+        res{2}.aucGM = [];
+
         if numGeometryMatchesN2N
             [trash,descMatchesNNN21] = min(copyDist');
 
@@ -633,18 +638,18 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
                     distDescMatchesNNN21(j) = inf;
                 end
             end
-            
+
             [res{2}.correctMatches] = ...
                 LabelCorrectN21MatchesAndRecast(descMatchesNNN21,...
                                          geometryMatchesN2N,...
                                          distDescMatchesNNN21);
-          
+
             [res{2}.auc, res{2}.aucGM, res{2}.precision, res{2}.recall, res{2}.recallGM] = ...
                 PrecisionRecallComputation(res{2}.correctMatches, numGeometryMatchesN2N);
-            
+
             clear descMatchesNNN21;
-            clear distDescMatchesNNN21; 
-    
+            clear distDescMatchesNNN21;
+
         end
 
 
@@ -655,15 +660,15 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
         % 1-1 matching (frame A_i is matched at one frame B_j and
         % viceversa)
         % Find one-to-one best matches
-        
-        res{3}.method = 'NNR-121';
-        res{3}.correctMatches = []; 
-        res{3}.precision = []; 
-        res{3}.recall = []; 
-        res{3}.recallGM = []; 
-        res{3}.auc = []; 
-        res{3}.aucGM = []; 
 
+        res{3}.method = 'NNR-121';
+        res{3}.correctMatches = [];
+        res{3}.precision = [];
+        res{3}.recall = [];
+        res{3}.recallGM = [];
+        res{3}.auc = [];
+        res{3}.aucGM = [];
+if 0
         if numGeometryMatches121
             tic
 
@@ -726,49 +731,50 @@ classdef CVCRepeatabilityBenchmark < benchmarks.GenericBenchmark ...
             end
             'temps NNR'
             toc
-            
+
             [res{3}.correctMatches] = ...
                 LabelCorrect121MatchesAndRecast(descMatchesNNR121,...
                                          geometryMatches121,...
                                          distDescMatchesNNR121);
-        
+
             [res{3}.auc, res{3}.aucGM, res{3}.precision, res{3}.recall, res{3}.recallGM] = ...
                 PrecisionRecallComputation(res{3}.correctMatches, numGeometryMatches121);
-            
+
             clear descMatchesNNR121;
             clear distDescMatchesNNR121;
-                       
+
         end
 
-    
+end
 
         % N-1 matching. A frame B_j can be associated to more that one
         % frame in A. (N-to-1)
-        
+
         res{4}.method = 'NNR-N21';
-        res{4}.correctMatches = []; 
-        res{4}.precision = []; 
-        res{4}.recall = []; 
-        res{4}.recallGM = []; 
-        res{4}.auc = []; 
-        res{4}.aucGM = []; 
-        
+        res{4}.correctMatches = [];
+        res{4}.precision = [];
+        res{4}.recall = [];
+        res{4}.recallGM = [];
+        res{4}.auc = [];
+        res{4}.aucGM = [];
+
         if numGeometryMatchesN2N
             % for each frame A_i, we sort the frames B_j w.r.t. distance
             [sortedRowDist,perm] = sort(copyDist,2,'ascend');
 
             distDescMatchesNNRN21 = (sortedRowDist(:,1)./sortedRowDist(:,2))';
             descMatchesNNRN21 = perm(:,1)';
-            
-            
+
+
             [res{4}.correctMatches] = ...
                 LabelCorrectN21MatchesAndRecast(descMatchesNNRN21,...
                                          geometryMatchesN2N,...
                                          distDescMatchesNNRN21);
-                                     
-            [ res{4}.aucNNR, res{4}.aucGM, res{4}.precision, res{4}.recall, res{4}.recallGM] = ...
-                PrecisionRecallComputation(res{4}.correctMatches, numGeometryMatchesN2N); 
-            
+
+
+            [ res{4}.auc, res{4}.aucGM, res{4}.precision, res{4}.recall, res{4}.recallGM] = ...
+                PrecisionRecallComputation(res{4}.correctMatches, numGeometryMatchesN2N);
+
             clear descMatchesNNRN21;
             clear distDescMatchesNNRN21;
         end
@@ -780,15 +786,15 @@ if 0
         % viceversa. In fact, to compute the precision-recall curve for all
         % distance thresholds, each frame in A is associated with all
         % frames in B.
-        
+
         res{5}.method = 'ThrBased-N2N';
-        res{5}.correctMatches = []; 
-        res{5}.precision = []; 
-        res{5}.recall = []; 
-        res{5}.recallGM = []; 
-        res{5}.auc = []; 
-        res{5}.aucGM = []; 
-        
+        res{5}.correctMatches = [];
+        res{5}.precision = [];
+        res{5}.recall = [];
+        res{5}.recallGM = [];
+        res{5}.auc = [];
+        res{5}.aucGM = [];
+
         if numGeometryMatchesN2N
             [idFramesB, idFramesA] = meshgrid(1:numFramesB,1:numFramesA);
             distDescMatchesThrBasedN2N = copyDist(:)';
@@ -799,16 +805,16 @@ if 0
 
             % A list is generated, indicated frames A_i B_j paired.
             descMatchesThrBasedN2N = [idFramesA(perm) , idFramesB(perm)]';
-            
-        
+
+
             [res{5}.correctMatches] = ...
             LabelCorrectN2NMatchesAndRecast(descMatchesThrBasedN2N,...
                                          geometryMatchesN2N,...
                                          distDescMatchesThrBasedN2N);
-        
+
             [res{5}.auc, res{5}.aucGM, res{5}.precision, res{5}.recall, res{5}.recallGM] = ...
                 PrecisionRecallComputation(res{5}.correctMatches, numGeometryMatchesN2N);
-            
+
             clear descMatchesThrBasedN2N;
             clear distDescMatchesThrBasedN2N;
 
@@ -817,7 +823,7 @@ end
         for i=1:size(res,2)
             obj.info('AUC Method %s : %g', res{i}.method, res{i}.auc);
         end
-        
+
 
 
 
@@ -1027,9 +1033,9 @@ function [auc, aucGM, precision, recall, recallGM ] = ...
 
     % At least should be a true positive to compute the precision-recall
     % curve
-    
+
     if sum(correctMatches)
-    
+
         tpv = cumsum(correctMatches);
         fnv = sum(correctMatches) - cumsum(correctMatches);
         fpv = cumsum(~correctMatches);
@@ -1045,9 +1051,9 @@ function [auc, aucGM, precision, recall, recallGM ] = ...
         recall = [];
         recallGM = [];
         precision = [];
-        
+
         auc = 0;
         aucGM = 0;
     end
-    
+
 end

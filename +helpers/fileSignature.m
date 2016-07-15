@@ -29,9 +29,11 @@ for i = 1:nargin
   f_info = dir(varargin{i});
   
   % ADDED: Get the 'sequence' name
-  fragments = strsplit(varargin{i},'\');
+  fragments = strsplit(varargin{i},'/');
   seqName = fragments{end-1};
-  
+
   signature = strcat(signature,sprintf('%s;%s;%s;', seqName, f_info.name, f_info.date));
+  %signature = strcat(signature,sprintf('%s;%s;', f_info.name, f_info.date));
+
 end
 

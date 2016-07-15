@@ -22,14 +22,17 @@ classdef VlFeatCovdet < localFeatures.GenericLocalFeatureExtractor & ...
   methods
     function obj = VlFeatCovdet(varargin)
       import helpers.*;
-      obj.Name = 'VLFeat Covdet';
+      %obj.Name = 'VLFeatCovDet';
       varargin = obj.configureLogger(obj.Name,varargin);
       obj.VlCovdetArguments = obj.checkInstall(varargin);
+      obj.Name = strcat('VLFeatCovDet_', char(obj.VlCovdetArguments(2)));
       obj.ExtractsDescriptors = true;
     end
 
     function [frames descriptors] = extractFeatures(obj, imagePath)
       import helpers.*;
+      import localFeatures.helpers.*;
+
       [frames, descriptors] = obj.loadFeatures(imagePath,nargout > 1);
       if numel(frames) > 0; return; end;
       img = imread(imagePath);
@@ -38,11 +41,41 @@ classdef VlFeatCovdet < localFeatures.GenericLocalFeatureExtractor & ...
       startTime = tic;
       if nargout == 1
         obj.info('Computing frames of image %s.',getFileName(imagePath));
-        frames = vl_covdet(img, obj.VlCovdetArguments{:});
+
+        % HACK HACK HACK
+
+%         max_features = 10;
+%         new_size = 2048;
+%         
+%         scale = new_size / max(size(img));
+%         img = imresize(img, scale, 'bilinear');
+               
+        [frames descriptors_, info] = vl_covdet(img, ...
+            obj.VlCovdetArguments{:}, 'Verbose');
+
+      image = imread(imagePath);
+      if(size(image,3)>1), image = rgb2gray(image); end
+      image = im2single(image); % If not already in uint8, then convert
+      
+      [frames descriptors_] = vl_covdet(image, ...
+                                   'Frames', frames, ...
+                                   'Descriptor', 'Patch', ...
+                                   'PatchResolution', 31, ...
+                                   'EstimateAffineShape', true, ...
+                                   'EstimateOrientation', true, ...
+                                   'Verbose');
+
+        % store extracted patches
+        storePatches(obj, imagePath, descriptors_, obj.Name, img, frames);
+        
+        % END HACK HACK HACK
+ 
       else
         obj.info('Computing frames and descriptors of image %s.',...
                  getFileName(imagePath));
-        [frames descriptors] = vl_covdet(img, obj.VlCovdetArguments{:});
+        [frames descriptors] = vl_covdet(img,...
+                                         obj.VlCovdetArguments{:},...
+                                         'Verbose', 1);
       end
       timeElapsed = toc(startTime);
             
@@ -50,8 +83,8 @@ classdef VlFeatCovdet < localFeatures.GenericLocalFeatureExtractor & ...
                 size(frames,2),getFileName(imagePath),timeElapsed);
       obj.storeFeatures(imagePath, frames, descriptors);
     end
-
-    function [frames descriptors] = extractDescriptors(obj, imagePath, frames)
+    
+    function [frames descriptors] = extractDescriptors(obj, imagePath, frames, name)
       image = imread(imagePath);
       if(size(image,3)>1), image = rgb2gray(image); end
       image = im2single(image); % If not already in uint8, then convert
@@ -63,10 +96,15 @@ classdef VlFeatCovdet < localFeatures.GenericLocalFeatureExtractor & ...
 %                                        'Frames', frames, ...
 %                                        'Descriptor', 'SIFT', ...
 %                                        'Verbose') ;
-                                   
+
+%       new_size = 2048;
+%         
+%       scale = new_size / max(size(image));
+%       image = imresize(image, scale, 'bilinear');
+ 
       [frames descriptors] = vl_covdet(image, ...
                                        'Frames', frames, ...
-                                       obj.VlCovdetArguments{:}, ...
+                                       obj.VlCovdetArguments{:},...
                                        'Verbose') ;                                   
       timeElapsed = toc(startTime);
       obj.debug('Descriptors of %d frames computed in %gs',...

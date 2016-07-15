@@ -63,13 +63,13 @@ classdef DescriptorAdapter < localFeatures.GenericLocalFeatureExtractor
         obj.info('Computing frames of image %s.',getFileName(imagePath));
         frames = obj.FrameDetector.extractFeatures(imagePath);
       else
-        obj.info('Computing frames and descriptors of image %s.',...
-          getFileName(imagePath));
+         obj.info('Computing frames and descriptors of image %s.',...
+           getFileName(imagePath));
         % Prevent to convert image twice.
         [valImagePath imIsTmp] = obj.ensureImageFormat(imagePath);
         frames = obj.FrameDetector.extractFeatures(valImagePath);
         [frames descriptors] = ...
-          obj.DescExtractor.extractDescriptors(valImagePath, frames);
+          obj.DescExtractor.extractDescriptors(valImagePath, frames, obj.FrameDetector.Name);
         if imIsTmp, delete(valImagePath); end;
       end
       timeElapsed = toc(startTime);
@@ -80,7 +80,7 @@ classdef DescriptorAdapter < localFeatures.GenericLocalFeatureExtractor
 
     function [frames descriptors] = extractDescriptors(obj, imagePath, frames)
       [frames descriptors] = ...
-          obj.DescExtractor.extractDescriptors(imagePath, frames);
+          obj.DescExtractor.extractDescriptors(imagePath, frames, obj.Name);
     end
 
     function sign = getSignature(obj)

@@ -1,4 +1,4 @@
-classdef VlFeatSift < localFeatures.GenericLocalFeatureExtractor & ...
+classdef cvc_VlFeatSift < localFeatures.GenericLocalFeatureExtractor & ...
     helpers.GenericInstaller
 % localFeatures.VlFeatSift VlFeat vl_sift wrapper
 %   localFeatures.VlFeatSift('OptionName',OptionValue,...) Creates new
@@ -20,14 +20,14 @@ classdef VlFeatSift < localFeatures.GenericLocalFeatureExtractor & ...
   end
 
   methods
-    function obj = VlFeatSift(varargin)
+    function obj = cvc_VlFeatSift(varargin)
       % def. arguments
-      obj.Name = 'VLFeat SIFT';
+      obj.Name = 'cvc_VLFeat SIFT';
       varargin = obj.configureLogger(obj.Name,varargin);
       obj.VlSiftArguments = obj.checkInstall(varargin);
       obj.ExtractsDescriptors = true;
     end
-
+    
     function [frames descriptors] = extractFeatures(obj, imagePath)
       import helpers.*;
       [frames descriptors] = obj.loadFeatures(imagePath,nargout > 1);
@@ -50,7 +50,7 @@ classdef VlFeatSift < localFeatures.GenericLocalFeatureExtractor & ...
       obj.storeFeatures(imagePath, frames, descriptors);
     end
 
-    function [frames descriptors] = extractDescriptors(obj, imagePath, frames, name)
+    function [frames descriptors] = extractDescriptors(obj, imagePath, frames, featureType)
       % extractDescriptor Extract SIFT descriptors of disc frames
       %   [DFRAMES DESCRIPTORS] = obj.extractDescriptor(IMG_PATH,
       %   FRAMES) Extracts SIFT descriptors DESCRIPTPORS of disc
@@ -61,30 +61,27 @@ classdef VlFeatSift < localFeatures.GenericLocalFeatureExtractor & ...
       import localFeatures.helpers.*;
       obj.info('Computing descriptors.');
       startTime = tic;
-      % Get the input image
-      img = imread(imagePath);
-      imgSize = size(img);
-      if numel(imgSize) == 3 && imgSize(3) > 1
-        img = rgb2gray(img);
+      
+      patches = loadPatches(obj, imagePath, featureType);
+      
+      for i=1:size(patches, 3)
+        patch = patches(:,:,i);
+        if(size(patch,3)>1), patch = rgb2gray(patch); end
+   
+        fc = [17.5;17.5;2.75;0];
+        [frame, descriptor] = vl_sift(single(patch),...
+          'Frames',fc,...
+          obj.VlSiftArguments{:});
+        descriptors(:,i) = descriptor;
+        %descriptors(:,i) = single(descriptor) / norm(single(descriptor));
       end
-      img = single(img);
-      if size(frames,1) > 4
-        % Convert frames to disks
-        frames = [frames(1,:); frames(2,:); getFrameScale(frames)];
-      end
-      if size(frames,1) < 4
-        % When no orientation, compute upright SIFT descriptors
-        frames = [frames; zeros(1,size(frames,2))];
-      end
-      % Compute the descriptors (using scale space).
-      [frames, descriptors] = vl_sift(img,'Frames',frames,...
-        obj.VlSiftArguments{:});
+
       elapsedTime = toc(startTime);
       obj.debug('Descriptors computed in %gs',elapsedTime);
     end
-
+    
     function sign = getSignature(obj)
-      sign = [helpers.VlFeatInstaller.getBinSignature('vl_sift'),...
+      sign = [obj.Name,';', helpers.VlFeatInstaller.getBinSignature('vl_sift'),...
               helpers.cell2str(obj.VlSiftArguments)];
     end
   end

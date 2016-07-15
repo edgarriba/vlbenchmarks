@@ -47,7 +47,7 @@ classdef VggAffine < localFeatures.GenericLocalFeatureExtractor ...
       if ~ismember(obj.Opts.detector, obj.ValidDetectors)
         obj.error('Invalid detector');
       end
-      obj.Name = 'VGG Affine';
+      obj.Name = strcat('VGG Affine_', obj.Opts.detector);
       obj.ExtractsDescriptors = false;
       obj.SupportedImgFormats = {'.png','.ppm','.pgm'};
       obj.configureLogger(obj.Name,varargin);
@@ -56,6 +56,7 @@ classdef VggAffine < localFeatures.GenericLocalFeatureExtractor ...
     function frames = extractFeatures(obj, origImagePath)
       import helpers.*;
       import localFeatures.*;
+      import localFeatures.helpers.*;
 
       [frames descriptors] = obj.loadFeatures(origImagePath,nargout > 1);
       if numel(frames) > 0; return; end;
@@ -85,17 +86,40 @@ classdef VggAffine < localFeatures.GenericLocalFeatureExtractor ...
       end
       frames = helpers.readFramesFile(framesFile);
       delete(framesFile);
+
+      %% HACK %%
+      % normalize and save patches
+      %frames = computeNormalizedPatches(imagePath, frames);
+      
+      image = imread(imagePath);
+      if(size(image,3)>1), image = rgb2gray(image); end
+      image = im2single(image); % If not already in uint8, then convert
+      
+      [frames descriptors_] = vl_covdet(image, ...
+                                   'Frames', frames, ...
+                                   'Descriptor', 'Patch', ...
+                                   'PatchResolution', 31, ...
+                                   'EstimateAffineShape', true, ...
+                                   'EstimateOrientation', true, ...
+                                   'Verbose');
+      
+        % store extracted patches
+        storePatches(obj, imagePath, descriptors_, obj.Name);
+ 
+      %% ENDD HACK %%
+
       if imIsTmp, delete(imagePath); end;
       obj.debug('%d Features from image %s computed in %gs',...
         size(frames,2),getFileName(origImagePath),timeElapsed);
       obj.storeFeatures(origImagePath, frames, descriptors);
     end
-
+     
     function sign = getSignature(obj)
       signList = {helpers.fileSignature(obj.DetBinPath) ... 
         helpers.struct2str(obj.Opts)};
       sign = helpers.cell2str(signList);
     end
+
   end
 
   methods  (Access=protected)

@@ -58,7 +58,7 @@ classdef GenericInstaller < handle
       obj.installTarballs();
       obj.compile();
       obj.compileMexFiles();
-	    obj.setup();
+      obj.setup();
     end
 
     function clean(obj)

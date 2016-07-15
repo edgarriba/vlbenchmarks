@@ -133,8 +133,8 @@ classdef Logger < handle
         error(str);
       else
         % Adjust this to modify your output to stdout
-        display(sprintf('(%s)\t%s:\t%s',obj.levelStr(level),...
-          obj.LogLabel,str));
+         display(sprintf('(%s)\t%s:\t%s',obj.levelStr(level),...
+           obj.LogLabel,str));
       end
     end
 
